@@ -31,7 +31,7 @@ app.set('view engine', 'handlebars');
 
 // == ROUTERS ========================================
 var routers = require('./app/routes');
-app.use('/', routers);
+routers(app, express);
 
 // == FAVICON ========================================
 app.use(faviconHandler);
