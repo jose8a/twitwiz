@@ -41,6 +41,18 @@ var tweets = function(data) {
   return {total: results.length, data: results};
 };
 
+const options = {
+  getLists: {},
+  favorites: {
+    count: 200
+  },
+  listTimeline: {
+    slug: '',
+    owner_screen_name: 'jose8a',
+    count: 200
+  }
+};
+
 module.exports = function(router) {
   // get a collection of all my lists
   router.get('/', (req, res, next) => {
@@ -59,7 +71,8 @@ module.exports = function(router) {
     let twits = null;
 
     console.log(`LISTROUTER - path: '/favorites'`);
-    T.get('favorites/list', {count: 200}, function(err, data, response) {
+    // --- T.get('favorites/list', {count: 200}, function(err, data, response) {
+    T.get('favorites/list', options.favorites, function(err, data, response) {
       twits = tweets(data);
       res.status(200).send(twits);
     });
@@ -68,10 +81,11 @@ module.exports = function(router) {
   // get all 'non-favorites' lists' tweets
   router.get('/:listname', (req, res, next) => {
     const listname = req.params.listname;
+    options.listTimeline.slug = listname;
     let twits = null;
 
     console.log(`LISTROUTER - path: '/${listname}'`);
-    T.get('lists/statuses', {slug: listname, owner_screen_name: 'jose8a', count: 200}, function(err, data, response) {
+    T.get('lists/statuses', options.listTimeline, function(err, data, response) {
       twits = tweets(data);
       res.status(200).send(twits);
     });
