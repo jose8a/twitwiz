@@ -9,49 +9,19 @@
 // '/lists/members'       -- Returns the members of the specified list
 //
 // =================================================================
-// [ ] TODO: filter out only list-name, list-id, list-owner of each list from
-// '/lists/ownerships', '/lists/list'
-//
 // [X] TODO: filter out from list-timeline tweets: id, created_at, retweeted,
 // text, entities.urls, entities.hashtags, user.name, user.id,
 // user.profile_image_url, user.location
 //
-// [ ] TODO: update API to return max-days, max-hours, since-last-sync
+// [X] TODO: update API to return max-tweets
+// [X] TODO: update API to return max-days
+// [ ] TODO: update API to return since-last-sync
+//
+// [ ] TODO: filter out only list-name, list-id, list-owner of each list from
+// '/lists/ownerships', '/lists/list'
+//
 
-var T = require('../services/twitter');
-
-var tweets = function(data) {
-  var results = [];
-  for (var item of data) {
-    if (item.entities.urls.length < 1) {
-      continue;
-    } else {
-      var twit = {};
-      twit.id = item.id;
-      twit.content = item.text;
-      twit.url = item.entities.urls[0].expanded_url;
-      twit.ownerAlias = item.user.screen_name;
-      twit.owner = item.user.name;
-      twit.ownerId = item.user.id;
-      twit.createdAt = item.created_at;
-      twit.isRetweet = item.retweeted;
-      results.push(twit);
-    }
-  }
-  return {total: results.length, data: results};
-};
-
-const options = {
-  getLists: {},
-  favorites: {
-    count: 200
-  },
-  listTimeline: {
-    slug: '',
-    owner_screen_name: 'jose8a',
-    count: 200
-  }
-};
+var Timeline = require('../helpers/timeline-helper');
 
 module.exports = function(router) {
   // get a collection of all my lists
@@ -66,28 +36,110 @@ module.exports = function(router) {
     });
   });
 
-  // get all 'favorites' tweets
+  // default 'favorites' endpoint
   router.get('/favorites', (req, res, next) => {
-    let twits = null;
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'MAXTWEETS', value: 150});
+    uT.fetch.endpoint = 'favorites/list';
 
-    console.log(`LISTROUTER - path: '/favorites'`);
-    // --- T.get('favorites/list', {count: 200}, function(err, data, response) {
-    T.get('favorites/list', options.favorites, function(err, data, response) {
-      twits = tweets(data);
-      res.status(200).send(twits);
-    });
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notMaxTweets, res);
   });
 
-  // get all 'non-favorites' lists' tweets
-  router.get('/:listname', (req, res, next) => {
-    const listname = req.params.listname;
-    options.listTimeline.slug = listname;
-    let twits = null;
+  // 'favorites' timeline endpoint to retrieve 'max-tweets'-worth of tweets
+  router.get('/favorites/mt/:maxtweets', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'MAXTWEETS', value: req.params.maxtweets});
+    uT.fetch.endpoint = 'favorites/list';
 
-    console.log(`LISTROUTER - path: '/${listname}'`);
-    T.get('lists/statuses', options.listTimeline, function(err, data, response) {
-      twits = tweets(data);
-      res.status(200).send(twits);
-    });
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notMaxTweets, res);
+  });
+
+  // 'favorites' timeline endpoint to retrieve 'max-days'-worth of tweets
+  router.get('/favorites/md/:maxdays', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'MAXDAYS', value: req.params.maxdays});
+    uT.fetch.endpoint = 'favorites/list';
+
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notMaxDays, res);
+  });
+
+  // 'favorites' timeline endpoint to retrieve all tweets since 'since-id'
+  router.get('/favorites/sid/:sinceid', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'SINCEID', value: req.params.sinceid});
+    uT.fetch.endpoint = 'favorites/list';
+
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notSinceId, res);
+  });
+
+  // default 'lists' endpoint
+  router.get('/:listname', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'MAXTWEETS', value: 150});
+    uT.fetch.endpoint = 'lists/statuses';
+
+    // slug and owner_screen_name are required for this endpoint
+    uT.reqOptions.slug = req.params.listname;
+    uT.reqOptions.owner_screen_name = 'jose8a';
+
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notMaxTweets, res);
+  });
+
+  // 'lists' timeline endpoint to retrieve 'max-tweets'-worth of tweets
+  router.get('/:listname/mt/:maxtweets', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'MAXTWEETS', value: req.params.maxtweets});
+    uT.fetch.endpoint = 'lists/statuses';
+
+    // slug and owner_screen_name are required for this endpoint
+    uT.reqOptions.slug = req.params.listname;
+    uT.reqOptions.owner_screen_name = 'jose8a';
+
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notMaxTweets, res);
+  });
+
+  // 'lists' timeline endpoint to retrieve 'max-days'-worth of tweets
+  router.get('/:listname/md/:maxdays', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'MAXDAYS', value: req.params.maxdays});
+    uT.fetch.endpoint = 'lists/statuses';
+
+    // slug and owner_screen_name are required for this endpoint
+    uT.reqOptions.slug = req.params.listname;
+    uT.reqOptions.owner_screen_name = 'jose8a';
+
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notMaxDays, res);
+  });
+
+  // 'lists' timeline endpoint to retrieve all tweets since 'since-id'
+  router.get('/:listname/sid/:sinceid', (req, res, next) => {
+    // create a new Timeline object
+    var uT = Object.create(Timeline);
+    uT.init({username: 'jose8a', type: 'SINCEID', value: req.params.sinceid});
+    uT.fetch.endpoint = 'lists/statuses';
+
+    // slug and owner_screen_name are required for this endpoint
+    uT.reqOptions.slug = req.params.listname;
+    uT.reqOptions.owner_screen_name = 'jose8a';
+
+    // request from Twitter API endpoint
+    uT.fetchTimeline(uT, uT.notSinceId, res);
   });
 };
+
+
+
