@@ -29,6 +29,9 @@ var Timeline = {
     this.reqOptions.screen_name = this.fetch.username;
     this.reqOptions.count = this.timelineData.tweetsPerRequest;
 
+    // Force an API-request stop condition
+    this.stopCondition = false;
+
     console.log('Timeline object initialized.');
   },
 
@@ -43,15 +46,21 @@ var Timeline = {
     let daysAgo = this.fetch.value;
     let dateAgo = subDays(dateToday, daysAgo);
 
-    if (this.timelineData.maxId !== '-1') {
-      let dateMarker = tlData.tweets[tlData.tweets.length -1].created_at;
-      console.log("MAX DAYS ==> " + dateMarker + "<==>" + dateAgo);
-      console.log( "notMaxDays ==> " + isBefore(dateAgo, dateMarker));
-      return isBefore(dateAgo, dateMarker);
-    } else {
-      console.log("MAX DAYS initial pass");
-      return true;
+    if (!this.stopCondition) {
+      if (this.timelineData.maxId !== '-1') {
+        let dateMarker = tlData.tweets[tlData.tweets.length -1].created_at;
+        console.log("MAX DAYS ==> " + dateMarker + "<==>" + dateAgo);
+        console.log( "notMaxDays ==> " + isBefore(dateAgo, dateMarker));
+        return isBefore(dateAgo, dateMarker);
+      } else {
+        console.log("MAX DAYS initial pass");
+        return true;
+      }
     }
+
+    // An unexpected stopCondition occurred - send a stop signal
+    //    -- inverse logic expected
+    return !this.stopCondition;
   },
 
   notSinceId() {
@@ -106,6 +115,9 @@ var Timeline = {
       tlData.maxDate = maxDate;
     } else {
       console.log("Done. Stop pinging the Twitter machine.");
+      this.stopCondition = true;
+
+      console.warn('NO MORE TWEETS AVAILABLE');
       // var error = new Error("No data returned");
       // TODO: figure out if this is actually an error
     }
